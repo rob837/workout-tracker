@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Split">
+<meta name="theme-color" content="#0d0d0f">
+<title>Upper / Lower</title>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --panel: #16161a;
+    --panel-2: #1f1f25;
+    --line: #2c2c34;
+    --line-soft: #232329;
+    --ink: #f2f2f4;
+    --ink-dim: #9a9aa6;
+    --ink-faint: #5c5c67;
+    --lime: #c4f042;
+    --lime-deep: #8fb52f;
+    --lime-bg: #22270f;
+    --radius: 16px;
+    --f: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body { background: var(--bg) !important; }
+  body {
+    color: var(--ink);
+    font-family: var(--f);
+    -webkit-font-smoothing: antialiased;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: max(22px, calc(env(safe-area-inset-top) + 8px)) 18px calc(118px + env(safe-area-inset-bottom));
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 6px 2px 20px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--lime); font-weight: 700; margin-bottom: 11px;
+  }
+  h1 { font-size: 42px; line-height: 0.92; font-weight: 800; letter-spacing: -0.035em; color: var(--ink); }
+  h1 .sl { color: var(--ink-faint); font-weight: 200; }
+  .sub { margin-top: 13px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; max-width: 94%; }
+
+  .day-labels { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 7px; padding: 0 2px; }
+  .day-lbl { text-align: center; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
+
+  .tabs { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 22px; }
+  .tab {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
+    padding: 13px 4px; text-align: center; cursor: pointer;
+    transition: background .15s, border-color .15s, transform .08s;
+  }
+  .tab:active { transform: scale(.96); }
+  .tab .tl { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; margin-bottom: 5px; }
+  .tab .tn { font-size: 15px; font-weight: 800; color: var(--ink-dim); letter-spacing: -.01em; }
+  .tab.active { background: var(--lime); border-color: var(--lime); }
+  .tab.active .tl { color: rgba(0,0,0,.5); }
+  .tab.active .tn { color: #0d0d0f; }
+
+  .prog { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 0 2px; }
+  .ptrack { flex: 1; height: 5px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+  .pfill { height: 100%; width: 0; background: var(--lime); border-radius: 5px; transition: width .35s cubic-bezier(.2,.8,.2,1); }
+  .pcount { font-size: 12px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; min-width: 62px; text-align: right; }
+
+  .note {
+    background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--lime);
+    border-radius: 11px; padding: 13px 15px; font-size: 12.5px; color: var(--ink-dim);
+    line-height: 1.55; margin-bottom: 20px;
+  }
+  .note b { color: var(--ink); font-weight: 700; }
+
+  .ex { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .ex-head { padding: 15px 16px 11px; }
+  .ex-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .ex-name { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .ex-scheme { font-size: 11px; color: var(--ink-faint); font-weight: 600; letter-spacing: .04em; white-space: nowrap; }
+
+  .target {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 9px; padding: 5px 11px 5px 9px;
+    background: var(--lime-bg); border: 1px solid #3a4718; border-radius: 8px;
+    font-size: 12px; color: var(--lime); font-weight: 600;
+  }
+  .target .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); flex: none; }
+  .target.none { background: var(--panel-2); border-color: var(--line); color: var(--ink-faint); }
+  .target.none .dot { background: var(--ink-faint); }
+
+  .setup-note { margin-top: 6px; font-size: 12px; color: var(--ink-faint); line-height: 1.45; }
+
+  .core-wrap { padding: 4px 16px 16px; }
+  .core-btn {
+    width: 100%; background: var(--lime); color: #0d0d0f; border: none; border-radius: 12px;
+    padding: 15px; font-family: inherit; font-size: 14.5px; font-weight: 800;
+    letter-spacing: .01em; cursor: pointer; transition: transform .08s;
+  }
+  .core-btn:active { transform: scale(.97); }
+  .core-picked {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 11px 5px 9px; background: var(--lime-bg); border: 1px solid #3a4718;
+    border-radius: 8px; font-size: 12.5px; color: var(--lime); font-weight: 600; margin-bottom: 10px;
+  }
+  .core-picked .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); flex: none; }
+  .core-picked b { color: #dfff88; font-weight: 800; margin-left: 2px; }
+  .core-row { grid-template-columns: 24px 1fr 42px; }
+  .core-label { font-size: 14px; font-weight: 600; color: var(--ink-dim); padding: 4px 2px; }
+  .core-row.done .core-label { color: var(--ink-faint); }
+  .target b { color: #dfff88; font-weight: 800; }
+
+  .sets { padding: 2px 10px 8px; }
+  .srow {
+    display: grid; grid-template-columns: 24px 1fr 1fr 42px; align-items: center; gap: 8px;
+    padding: 7px 6px; border-top: 1px solid var(--line-soft);
+  }
+  .sn { font-size: 12px; font-weight: 700; color: var(--ink-faint); text-align: center; font-variant-numeric: tabular-nums; }
+  .srow input {
+    width: 100%; background: var(--panel-2); border: 1.5px solid transparent; border-radius: 9px;
+    color: var(--ink); font-family: inherit; font-size: 15px; font-weight: 600;
+    padding: 10px 8px; text-align: center; outline: none;
+    transition: border-color .15s, background .15s; -moz-appearance: textfield;
+  }
+  .srow input::-webkit-outer-spin-button, .srow input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .srow input::placeholder { color: var(--ink-faint); font-weight: 500; }
+  .srow input:focus { border-color: var(--lime-deep); background: #23260f; }
+  .srow.done input { color: var(--ink-dim); }
+
+  .chk {
+    width: 34px; height: 34px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: var(--panel-2); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto; transition: background .15s, border-color .15s, transform .08s;
+  }
+  .chk:active { transform: scale(.88); }
+  .chk svg { width: 18px; height: 18px; opacity: 0; transition: opacity .12s; }
+  .chk.on { background: var(--lime); border-color: var(--lime); }
+  .chk.on svg { opacity: 1; }
+
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to top, var(--bg) 60%, rgba(13,13,15,0));
+    padding: 18px 18px calc(20px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px; max-width: 640px; margin: 0 auto;
+  }
+  .btn {
+    flex: 1; border: none; border-radius: 13px; padding: 16px; font-family: inherit;
+    font-size: 15px; font-weight: 800; letter-spacing: .02em; cursor: pointer; transition: transform .08s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-end { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+  .btn-end.armed { background: #3a1616; border-color: #7a2a2a; color: #ff9b9b; }
+
+  .tip { text-align: center; font-size: 11px; color: var(--ink-faint); margin-top: 24px; line-height: 1.55; padding: 0 10px; }
+
+  .flash {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    background: var(--lime); color: #0d0d0f; font-weight: 800; font-size: 13px;
+    padding: 11px 18px; border-radius: 11px; opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s; z-index: 50; max-width: 90%; text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .flash.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">4-Day Split</div>
+  <h1>Upper <span class="sl">/</span> Lower</h1>
+  <div class="sub">Tick every set you finish. On Clear/End, any lift you completed in full gets its target bumped for next week. Miss a set and the weight holds &mdash; add a rep instead.</div>
+</header>
+
+<div class="day-labels" id="dayLabels"></div>
+<div class="tabs" id="tabs"></div>
+
+<div class="prog">
+  <div class="ptrack"><div class="pfill" id="pfill"></div></div>
+  <div class="pcount" id="pcount">0 / 0</div>
+</div>
+
+<div class="note">
+  <b>Chest still uncleared:</b> incline and machine pressing only. No flat bench, no heavy conventional deadlifts, until the sports med doc signs it off.
+</div>
+
+<div id="board"></div>
+
+<div class="tip">Your numbers and targets are saved on this phone between sessions. Clear/End resets the ticks for your next visit and locks in next week's targets.</div>
+
+<div class="bar">
+  <button class="btn btn-end" id="endBtn">Clear / End session</button>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+  // Each exercise: [name, "sets x reps" label, type, setCount, setupNote]
+  // type: lower/upper = compound with auto weight target, iso = rep-based progression
+  // CORE is a special marker handled separately with random rotation
+  const CORE_POOL = [
+    { name: "Plank", target: "60 sec hold" },
+    { name: "Side plank", target: "45 sec each side" },
+    { name: "Russian twists", target: "20 reps each side" },
+    { name: "Hanging leg raises", target: "12 reps" },
+    { name: "Reverse crunch", target: "15 reps" },
+    { name: "Crunch", target: "20 reps" },
+    { name: "Scissors", target: "30 sec" }
+  ];
+
+  const PLAN = {
+    "Upper A": [
+      ["Incline dumbbell press", "3 &times; 6-10", "upper", 3, "Bench at 30&deg;"],
+      ["Shoulder press", "3 &times; 6-10", "upper", 3, "Bench upright, ~80-85&deg;"],
+      ["Low row (chest-supported, Technogym)", "3 &times; 6-10", "upper", 3, "Independent handles, full stretch each rep"],
+      ["Lat pulldown", "3 &times; 6-10", "upper", 3, "Wide or neutral grip"],
+      ["Dumbbell curl or preacher curl", "3 &times; 10-15", "iso", 3, "Preacher if the bench is free, standard DB otherwise"],
+      ["Seated DB overhead tricep extension", "3 &times; 10-15", "iso", 3, "Both hands, one dumbbell, elbows tucked"]
+    ],
+    "Lower A": [
+      ["Squat", "3 &times; 6-10", "lower", 3, ""],
+      ["Romanian deadlift", "3 &times; 6-10", "lower", 3, ""],
+      ["Leg press", "3 &times; 8-12", "lower", 3, ""],
+      ["Hamstring curl", "3 &times; 10-15", "iso", 3, ""],
+      ["Calf raise", "4 &times; 12-20", "iso", 4, ""]
+    ],
+    "Upper B": [
+      ["Incline dumbbell press", "3 &times; 10-15", "upper", 3, "Same as Upper A, higher reps so the two days feel different"],
+      ["Pull-ups", "3 &times; AMRAP", "iso", 3, "Assisted machine if needed"],
+      ["Bent-over row or single-arm DB row", "3 &times; 6-10", "upper", 3, "Bar or dumbbells on a bench, different plane to the low row"],
+      ["Seated lateral raise", "3 &times; 10-15", "iso", 3, "Standing fine if seated unavailable"],
+      ["Hammer curl", "3 &times; 10-15", "iso", 3, ""],
+      ["Rope pushdown or DB seated tricep extension", "3 &times; 10-15", "iso", 3, "Different angle to Upper A's extension"]
+    ],
+    "Lower B": [
+      ["Leg press", "3 &times; 8-12", "lower", 3, ""],
+      ["Lunges", "3 &times; 10-12", "lower", 3, ""],
+      ["Hamstring curl", "3 &times; 10-15", "iso", 3, ""],
+      ["Calf raise", "4 &times; 12-20", "iso", 4, ""],
+      ["CORE", "3 sets", "core", 3, "Tap to pick today's move"]
+    ]
+  };
+
+  const INC = { lower: 2.5, upper: 1.25, iso: 0 };
+  const CAP = 500;
+  const STORE_KEY = "ul-tracker-v4";
+
+  const days = Object.keys(PLAN);
+  const DAY_MAP = { "Upper A": "Mon", "Lower A": "Tue", "Upper B": "Thu", "Lower B": "Fri" };
+  let active = days[0];
+  let state = null;
+
+  function freshState() {
+    const s = {};
+    days.forEach(d => {
+      s[d] = PLAN[d].map(ex => ({
+        target: null,
+        coreLast: null,
+        coreTarget: null,
+        coreReady: false,
+        sets: Array.from({length: ex[3]}, () => ({w:"", r:"", done:false, core: null}))
+      }));
+    });
+    return s;
+  }
+
+  async function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed["Upper A"]) { state = parsed; return; }
+      }
+    } catch (e) {}
+    state = freshState();
+  }
+
+  async function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  const checkSVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#0d0d0f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  const tabsEl = document.getElementById('tabs');
+  const dayLabelsEl = document.getElementById('dayLabels');
+  const boardEl = document.getElementById('board');
+  const pfill = document.getElementById('pfill');
+  const pcount = document.getElementById('pcount');
+  const endBtn = document.getElementById('endBtn');
+  const flash = document.getElementById('flash');
+
+  function buildDayLabels() {
+    dayLabelsEl.innerHTML = '';
+    days.forEach(d => {
+      const lbl = document.createElement('div');
+      lbl.className = 'day-lbl';
+      lbl.textContent = DAY_MAP[d] || '';
+      dayLabelsEl.appendChild(lbl);
+    });
+  }
+
+  function buildTabs() {
+    tabsEl.innerHTML = '';
+    days.forEach(d => {
+      const t = document.createElement('div');
+      t.className = 'tab' + (d === active ? ' active' : '');
+      const p = d.split(' ');
+      t.innerHTML = '<div class="tl">' + p[0] + '</div><div class="tn">' + p[1] + '</div>';
+      t.onclick = () => { active = d; render(); };
+      tabsEl.appendChild(t);
+    });
+  }
+
+  function render() {
+    buildTabs();
+    boardEl.innerHTML = '';
+    PLAN[active].forEach((ex, ei) => {
+      const cell = state[active][ei];
+      const card = document.createElement('div');
+      card.className = 'ex';
+
+      const head = document.createElement('div');
+      head.className = 'ex-head';
+
+      const schemeLabel = ex[1].indexOf('AMRAP') !== -1 ? ex[1] : (ex[2] === 'core' ? ex[1] : ex[1] + ' reps');
+      const top = document.createElement('div');
+      top.className = 'ex-top';
+      top.innerHTML = '<div class="ex-name">' + ex[0] + '</div><div class="ex-scheme">' + schemeLabel + '</div>';
+      head.appendChild(top);
+
+      if (ex[4]) {
+        const setup = document.createElement('div');
+        setup.className = 'setup-note';
+        setup.textContent = ex[4];
+        head.appendChild(setup);
+      }
+
+      if (ex[2] !== 'core') {
+        const tgt = document.createElement('div');
+        if (ex[2] === 'iso') {
+          if (cell.target === 'rep') {
+            tgt.className = 'target';
+            tgt.innerHTML = '<span class="dot"></span>This week: <b style="margin-left:2px">add 1 rep per set</b>';
+          } else {
+            tgt.className = 'target none';
+            tgt.innerHTML = '<span class="dot"></span>Work the rep range, then add a rep';
+          }
+        } else {
+          if (cell.target != null) {
+            tgt.className = 'target';
+            tgt.innerHTML = '<span class="dot"></span>Target this week: <b style="margin-left:2px">' + cell.target + ' kg</b>';
+          } else {
+            tgt.className = 'target none';
+            tgt.innerHTML = '<span class="dot"></span>Log your working weight';
+          }
+        }
+        head.appendChild(tgt);
+      }
+      card.appendChild(head);
+
+      if (ex[2] === 'core') {
+        card.appendChild(renderCore(cell, ei));
+      } else {
+        const sets = document.createElement('div');
+        sets.className = 'sets';
+        cell.sets.forEach((set, si) => {
+          const row = document.createElement('div');
+          row.className = 'srow' + (set.done ? ' done' : '');
+
+          const n = document.createElement('div');
+          n.className = 'sn'; n.textContent = si + 1;
+
+          const w = document.createElement('input');
+          w.type = 'number'; w.inputMode = 'decimal'; w.placeholder = 'kg'; w.value = set.w;
+          w.oninput = e => { state[active][ei].sets[si].w = e.target.value; save(); };
+
+          const repHint = ex[1].indexOf('AMRAP') !== -1 ? 'max' : ex[1].split('&times;')[1].trim();
+          const r = document.createElement('input');
+          r.type = 'number'; r.inputMode = 'numeric'; r.placeholder = repHint; r.value = set.r;
+          r.oninput = e => { state[active][ei].sets[si].r = e.target.value; save(); };
+
+          const chk = document.createElement('div');
+          chk.className = 'chk' + (set.done ? ' on' : '');
+          chk.innerHTML = checkSVG;
+          chk.onclick = () => { state[active][ei].sets[si].done = !state[active][ei].sets[si].done; save(); render(); };
+
+          row.appendChild(n); row.appendChild(w); row.appendChild(r); row.appendChild(chk);
+          sets.appendChild(row);
+        });
+        card.appendChild(sets);
+      }
+      boardEl.appendChild(card);
+    });
+    updateProgress();
+  }
+
+  function pickCoreMove(excludeLastName) {
+    let pool = CORE_POOL;
+    if (excludeLastName) pool = CORE_POOL.filter(m => m.name !== excludeLastName);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function renderCore(cell, ei) {
+    const wrap = document.createElement('div');
+    wrap.className = 'core-wrap';
+
+    if (!cell.coreReady) {
+      const btn = document.createElement('button');
+      btn.className = 'core-btn';
+      btn.textContent = 'Pick today\u2019s move';
+      btn.onclick = () => {
+        const move = pickCoreMove(cell.coreLast);
+        state[active][ei].coreLast = move.name;
+        state[active][ei].coreTarget = move.target;
+        state[active][ei].coreReady = true;
+        state[active][ei].sets.forEach(s => { s.done = false; });
+        save();
+        render();
+      };
+      wrap.appendChild(btn);
+      return wrap;
+    }
+
+    const picked = document.createElement('div');
+    picked.className = 'core-picked';
+    picked.innerHTML = '<span class="dot"></span>Today: <b>' + cell.coreLast + '</b> &mdash; ' + cell.coreTarget;
+    wrap.appendChild(picked);
+
+    const sets = document.createElement('div');
+    sets.className = 'sets';
+    cell.sets.forEach((set, si) => {
+      const row = document.createElement('div');
+      row.className = 'srow core-row' + (set.done ? ' done' : '');
+      const n = document.createElement('div');
+      n.className = 'sn'; n.textContent = si + 1;
+      const label = document.createElement('div');
+      label.className = 'core-label'; label.textContent = cell.coreTarget;
+      const chk = document.createElement('div');
+      chk.className = 'chk' + (set.done ? ' on' : '');
+      chk.innerHTML = checkSVG;
+      chk.onclick = () => { state[active][ei].sets[si].done = !state[active][ei].sets[si].done; save(); render(); };
+      row.appendChild(n); row.appendChild(label); row.appendChild(chk);
+      sets.appendChild(row);
+    });
+    wrap.appendChild(sets);
+    return wrap;
+  }
+
+  function updateProgress() {
+    let total = 0, done = 0;
+    state[active].forEach(c => c.sets.forEach(s => { total++; if (s.done) done++; }));
+    pcount.textContent = done + ' / ' + total;
+    pfill.style.width = total ? (done/total*100) + '%' : '0%';
+  }
+
+  function showFlash(msg) {
+    flash.textContent = msg;
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 2600);
+  }
+
+  function endSession() {
+    let bumped = 0;
+    PLAN[active].forEach((ex, ei) => {
+      const cell = state[active][ei];
+      const allDone = cell.sets.every(s => s.done);
+      const anyDone = cell.sets.some(s => s.done);
+
+      if (ex[2] === 'core') {
+        // clear the pick so next visit prompts a fresh draw, excluding whatever we just did
+        cell.sets.forEach(s => { s.done = false; });
+        cell.coreReady = false;
+        return;
+      }
+
+      if (ex[2] === 'iso') {
+        if (allDone && anyDone) cell.target = 'rep';
+      } else {
+        const weights = cell.sets.map(s => parseFloat(s.w)).filter(v => !isNaN(v));
+        const topW = weights.length ? Math.max(...weights) : null;
+        if (allDone && anyDone && topW != null) {
+          let next = topW + INC[ex[2]];
+          if (next > CAP) next = topW;
+          cell.target = Math.round(next * 100) / 100;
+          bumped++;
+        } else if (topW != null) {
+          cell.target = (cell.target != null) ? cell.target : Math.round(topW * 100) / 100;
+        }
+      }
+      cell.sets.forEach(s => { s.done = false; s.r = ""; });
+    });
+    save();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showFlash(bumped > 0 ? (bumped + (bumped === 1 ? ' lift' : ' lifts') + ' bumped for next week') : 'Session cleared for next week');
+  }
+
+  let armed = false, armTimer = null;
+  endBtn.onclick = () => {
+    if (!armed) {
+      armed = true;
+      endBtn.classList.add('armed');
+      endBtn.textContent = 'Tap again to end';
+      armTimer = setTimeout(() => { armed = false; endBtn.classList.remove('armed'); endBtn.textContent = 'Clear / End session'; }, 2600);
+      return;
+    }
+    clearTimeout(armTimer);
+    armed = false;
+    endBtn.classList.remove('armed');
+    endBtn.textContent = 'Clear / End session';
+    endSession();
+  };
+
+  (async function init() {
+    await load();
+    buildDayLabels();
+    render();
+  })();
+</script>
+</body>
+</html>
